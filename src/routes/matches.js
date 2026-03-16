@@ -31,7 +31,6 @@ matchesRouter.get('/', async (req, res) => {
 });
 
 matchesRouter.post('/', async (req, res) => {
-  console.log('body', req);
   const parsed = createMatchSchema.safeParse(req.body);
 
   if (!parsed.success) {
@@ -40,6 +39,11 @@ matchesRouter.post('/', async (req, res) => {
 
   const { data: { startTime, endTime, homeScore, awayScore} } = parsed;
 
+  const status = getMatchStatus(startTime, endTime);
+  if (!status) {
+    return res.status(400).json({ error: 'Invalid date range for status calculation' });
+  }
+
   try {
     const [ event ] = await db.insert(matches).values({
       ...parsed.data,
@@ -47,7 +51,7 @@ matchesRouter.post('/', async (req, res) => {
       endTime: new Date(endTime),
       homeScore: homeScore ?? 0,
       awayScore: awayScore ?? 0,
-      status: getMatchStatus(startTime, endTime),
+      status
     }).returning();
 
     res.status(201).json({ message: 'Match created', data: event });
