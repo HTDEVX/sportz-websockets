@@ -18,7 +18,7 @@ export function createWebSocketServer(server) {
     wss.on('connection', (socket) => {
         sendJson(socket, { type: 'connected' });
 
-        socket.on('error', (err) => console.error);
+        socket.on('error', (err) => console.error('WebSocket error:', err));
 
     });
 
