@@ -2,6 +2,7 @@ import express from 'express';
 import http from 'http';
 import { createWebSocketServer } from './ws/server.js';
 import { matchesRouter } from './routes/matches.js';
+import { securityMiddleware } from './arcjet.js';
 
 const PORT = Number(process.env.PORT || 8000);
 const HOST = process.env.HOST || '0.0.0.0';
@@ -10,6 +11,8 @@ const app = express();
 const server = http.createServer(app);
 
 app.use(express.json());
+
+app.use(securityMiddleware()); // Apply Arcjet security middleware to all routes for protection against malicious traffic and bots, ensuring the integrity and performance of our application. This middleware will analyze incoming requests and apply security rules to block or allow traffic based on the configured Arcjet rules, helping to safeguard our application from potential threats and abuse. 
 
 app.get('/', (req, res) => {
   res.send('Hello from express server!');
