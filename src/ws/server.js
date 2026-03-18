@@ -79,6 +79,7 @@ function broadcastToAll(wss, payload) {
 }
 
 export function createWebSocketServer(server) {
+
     const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 1024 * 1024 });
 
     wss.on('upgrade', async (socket, req) => {

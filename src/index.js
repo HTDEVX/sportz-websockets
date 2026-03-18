@@ -13,6 +13,8 @@ const server = http.createServer(app);
 
 app.use(express.json());
 
+app.use(securityMiddleware()); // Apply Arcjet security middleware to all routes for protection against malicious traffic and bots, ensuring the integrity and performance of our application. This middleware will analyze incoming requests and apply security rules to block or allow traffic based on the configured Arcjet rules, helping to safeguard our application from potential threats and abuse. 
+
 app.get('/', (req, res) => {
   res.send('Hello from express server!');
 });
