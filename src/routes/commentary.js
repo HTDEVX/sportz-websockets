@@ -38,12 +38,17 @@ commentaryRouter.post('/', async (req, res) => {
       })
       .returning();
 
-    if (req.app.locals.broadcastCommentaryAdded) {
-      req.app.locals.broadcastCommentaryAdded(matchId, createdCommentary);
+    try {
+      if (req.app.locals.broadcastCommentaryAdded) {
+        req.app.locals.broadcastCommentaryAdded(matchId, createdCommentary);
+      }
+    } catch (broadcastError) {
+        console.error('Failed to broadcast commentary', broadcastError);
     }
 
     return res.status(201).json({ message: 'Commentary created', data: createdCommentary });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to create commentary', details: JSON.stringify(error) });
+    console.error('Failed to create commentary', error);
+    return res.status(500).json({ error: 'Failed to create commentary' });
   }
 });
