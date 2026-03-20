@@ -42,6 +42,7 @@ function broadcastToMatchSubscribers(matchId, payload) {
 
 function handleMessage(socket, message) {
     let parsed;
+    let matchId;
 
     try {
         parsed = JSON.parse(message);
@@ -53,10 +54,12 @@ function handleMessage(socket, message) {
     // Handle different message types
     switch (parsed.type) {
         case 'subscribe':
-            subscribeToMatch(socket, parsed.matchId);
-            sendJson(socket, { type: 'subscribed', matchId: parsed.matchId });
+            matchId = String(parsed.matchId);
+            subscribeToMatch(socket, matchId);
+            sendJson(socket, { type: 'subscribed', matchId: matchId });
             break;
         case 'unsubscribe':
+            matchId = String(parsed.matchId);
             unsubscribeFromMatch(socket, parsed.matchId);
             sendJson(socket, { type: 'unsubscribed', matchId: parsed.matchId });
             break;
@@ -80,26 +83,30 @@ function broadcastToAll(wss, payload) {
 
 export function createWebSocketServer(server) {
 
-    const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 1024 * 1024 });
+    const wss = new WebSocketServer({ noServer: true, maxPayload: 1024 * 1024 });
 
-    wss.on('upgrade', async (socket, req) => {
-        if (wsArcjet) {
-            try {
-                const decision = await wsArcjet.protect(req);
+    server.on('upgrade', async (request, socket, head) => {
+        if (new URL(request.url, 'ws://localhost').pathname !== '/ws') return;
 
-                if (decision.isDenied()) {
-                    const code = decision.reason.isRateLimit() ? 1013 : 1008; // 1013 indicates that the connection is being closed due to rate limiting, while 1008 indicates a policy violation for other types of denials.
-                    const reason = decision.reason.isRateLimit() ? 'Connection closed due to rate limiting' : 'Connection denied by security rules';
-
-                    socket.close(code, reason); // 1008 indicates that the connection was closed due to a policy violation, which is appropriate for denied connections based on Arcjet's security rules.
-                    return;
-                }
-            } catch (error) {
-                socket.close(1011, 'Arcjet protection failed'); // 1011 indicates an internal error occurred, and the connection is being closed as a result.
+        try {
+            const decision = await wsArcjet.protect(request);
+            if (decision.isDenied()) {
+                const statusLine = decision.reason.isRateLimit()
+                    ? 'HTTP/1.1 429 Too Many Requests\r\n\r\n'
+                    : 'HTTP/1.1 403 Forbidden\r\n\r\n';
+                socket.write(statusLine);
+                socket.destroy();
                 return;
             }
+        } catch (error) {
+            socket.destroy();
+            return;
         }
-    })
+
+        wss.handleUpgrade(request, socket, head, (ws) => {
+            wss.emit('connection', ws, request);
+        });
+    });
 
     wss.on('connection', async (socket, req) => {
         socket.isAlive = true;
