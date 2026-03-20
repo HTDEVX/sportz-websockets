@@ -60,8 +60,8 @@ function handleMessage(socket, message) {
             break;
         case 'unsubscribe':
             matchId = String(parsed.matchId);
-            unsubscribeFromMatch(socket, parsed.matchId);
-            sendJson(socket, { type: 'unsubscribed', matchId: parsed.matchId });
+            unsubscribeFromMatch(socket, matchId);
+            sendJson(socket, { type: 'unsubscribed', matchId: matchId });
             break;
         default:
             sendJson(socket, { type: 'error', message: 'Unknown message type' });
